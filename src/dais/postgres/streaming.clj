@@ -1,6 +1,6 @@
 (ns
   ^{:author "Ziyang Hu"}
-  dais.streaming
+  dais.postgres.streaming
   (:require [clojure.core.async :as a :refer [<! >! <!! >!!]]
             [clojure.java.io :as io]
             [clojure.string :as str]
@@ -50,9 +50,9 @@
 (defn stop-streaming-proc
   [streaming-proc]
   (try
-    (sh/done @streaming-proc)
+    (sh/done streaming-proc)
     (Thread/sleep 100)
-    (sh/destroy @streaming-proc)
+    (sh/destroy streaming-proc)
     (catch Throwable e
       (error e))))
 
