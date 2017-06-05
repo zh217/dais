@@ -15,4 +15,6 @@
                  [org.clojure/java.jdbc "0.6.2-alpha3"]
                  [org.clojure/tools.reader "1.0.0-beta4"]
                  [me.raynes/conch "0.8.0"]
-                 [instaparse "1.4.7"]])
+                 [aysylu/loom "1.0.0"]
+                 [instaparse "1.4.7"]
+                 [org.clojure/data.priority-map "0.0.7"]])
