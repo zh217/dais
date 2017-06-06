@@ -19,4 +19,5 @@
                  [me.raynes/conch "0.8.0"]
                  [aysylu/loom "1.0.0"]
                  [instaparse "1.4.7"]
+                 [com.walmartlabs/lacinia "0.17.0"]
                  [org.clojure/data.priority-map "0.0.7"]])
