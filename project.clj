@@ -3,6 +3,8 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
+  :scm {:name "git"
+        :url  "https://github.com/zh217/dais"}
   :pedantic? :abort
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [honeysql "0.8.2"]
