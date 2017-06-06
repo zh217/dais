@@ -1,6 +1,6 @@
 (ns
   ^{:author "Ziyang Hu"}
-  panda-platform.elastic.request-helpers
+  dais.elasticsearch.request-helpers
   (:refer-clojure :exclude [get])
   (:require [qbits.spandex :as s]
             [qbits.spandex.utils :as s-utils])
