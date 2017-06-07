@@ -7,8 +7,9 @@
             [dais.postgres.query-helpers :as h]))
 
 (defn make-dataloader
-  [conn {:keys [key-fn]
-         :or   {key-fn :id}}]
+  [conn {:keys [key-fn key-processor]
+         :or   {key-fn        :id
+                key-processor identity}}]
   (let [dataloader-chan (a/chan 1024)
         put-sentinel #(a/>!! dataloader-chan ::sentinel)
         put-force-sentinel #(a/>!! dataloader-chan ::force-sentinel)
@@ -70,7 +71,7 @@
                     (recur
                       (identity pending)
                       false))
-                  (if-let [cache-value (get-in @cache [batch-fn key])]
+                  (if-let [cache-value (get-in @cache [batch-fn (key-processor key)])]
                     ;; third case: incoming request has applicable cache
                     (do
                       (when-not (= cache-value ::not-found)
@@ -85,7 +86,7 @@
                         (put-force-sentinel)
                         (put-sentinel))
                       (recur
-                        (update pending batch-fn conj [key ret-chan])
+                        (update pending batch-fn conj [(key-processor key) ret-chan])
                         false)))))))
           ;; dataloader is closed
           (do
