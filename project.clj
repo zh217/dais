@@ -16,8 +16,8 @@
                  [cc.qbits/spandex "0.3.11" :exclusions [org.clojure/clojure]]
                  [org.clojure/java.jdbc "0.6.2-alpha3"]
                  [org.clojure/tools.reader "1.0.0-beta4"]
-                 [me.raynes/conch "0.8.0" :exclusions [tailrecursion/cljs-priority-map]]
-                 [aysylu/loom "1.0.0"]
+                 [me.raynes/conch "0.8.0"]
+                 [aysylu/loom "1.0.0" :exclusions [tailrecursion/cljs-priority-map]]
                  [instaparse "1.4.7"]
                  [com.walmartlabs/lacinia "0.17.0"]
                  [org.clojure/data.priority-map "0.0.7"]])
