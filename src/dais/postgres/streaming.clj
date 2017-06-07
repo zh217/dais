@@ -36,7 +36,7 @@
     (when (or (not (:err proc))
               (not (:out proc)))
       (throw (ex-info "error starting process" {:proc proc})))
-    (info "mounting streaming proc")
+    (debug "mounting streaming proc")
     (a/thread
       (try
         (with-open [rdr (io/reader (:err proc))]
@@ -111,7 +111,7 @@
   [streaming-proc {:keys [streaming-buffer] :as conf}]
   (try
     (reset! started? true)
-    (info "mounting streaming")
+    (debug "mounting streaming")
     (let [buffer-size streaming-buffer
           stream-source (a/chan buffer-size
                                 logical-decoding->value-streams
@@ -119,19 +119,19 @@
           counter (atom 0)]
       (a/thread
         (try
-          (info "start database streaming")
+          (debug "start database streaming")
           (with-open [rdr (io/reader (:out streaming-proc))]
             (doseq [item (json/parsed-seq rdr true)]
               (swap! counter inc)
               (trace "json data stream" @counter item)
               (when (= 0 (rem @counter 500))
-                (info "json data stream" @counter))
+                (debug "json data stream" @counter))
               (>!! stream-source item))
             (if @started?
               (do
                 (fatal "data-stream terminated unexpectedly.")
                 (System/exit 1))
-              (info "wal2json stream terminated")))
+              (debug "wal2json stream terminated")))
           (catch Throwable e
             (error e))))
       stream-source)
@@ -143,7 +143,7 @@
   [data-stream]
   (try
     (reset! started? false)
-    (info "unmounting streaming")
+    (debug "unmounting streaming")
     (a/close! data-stream)
     (catch Throwable e
       (error e))))
