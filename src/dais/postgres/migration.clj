@@ -87,7 +87,6 @@
       (when (seq init-script)
         (let [content (slurp (:object init-script))]
           (info "executing init script")
-          (debug content)
           (jdbc/execute! (if init-transaction? tx c)
                          [content])))
       (doseq [schema load-order]
