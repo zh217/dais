@@ -79,8 +79,19 @@
        (str/join "\n" (map generate-field fields))
        "\n}"))
 
+(defn generate-input-object
+  [[k {:keys [description implements fields]}]]
+  (str (generate-description description)
+       "input "
+       (name k)
+       (when (seq implements)
+         (str " implements " (str/join ", " (map name implements)) " "))
+       " {\n"
+       (str/join "\n" (map generate-field fields))
+       "\n}"))
+
 (defn generate-plain-schema
-  [{:keys [scalars enums interfaces objects queries mutations]}]
+  [{:keys [scalars enums interfaces objects input-objects queries mutations]}]
   (str
     section-break
     (str/join item-break (map generate-scalar scalars))
@@ -90,6 +101,8 @@
     (str/join item-break (map generate-interface interfaces))
     section-break
     (str/join item-break (map generate-object objects))
+    section-break
+    (str/join item-break (map generate-input-object input-objects))
     section-break
     (generate-object [:QueryRoot {:fields queries}])
     section-break
