@@ -9,9 +9,7 @@
 (defn start-indexer
   [conn {:keys [bulk-request-conf on-start on-error streaming-pub processors]}]
   (let [{:keys [input-ch output-ch]}
-        (s/bulk-chan conn (merge
-                            bulk-request-conf
-                            {:headers {:Content-Type "application/x-ndjson"}}))]
+        (s/bulk-chan conn bulk-request-conf)]
     (a/go-loop []
       (when-let [[reqs resp] (a/<! output-ch)]
         (if (instance? Exception resp)
