@@ -87,10 +87,10 @@
       (when (seq init-script)
         (let [content (slurp (:object init-script))]
           (info "executing init script")
-          (jdbc/execute! (if init-transaction? tx c)
-                         [content])))
+          (jdbc/db-do-prepared (if init-transaction? tx c)
+                               [content])))
       (doseq [schema load-order]
         (let [content (slurp (:object (get schemata schema)))]
           (info "executing schema script" schema)
-          (jdbc/execute! (if init-transaction? tx c)
-                         [content]))))))
+          (jdbc/db-do-prepared (if init-transaction? tx c)
+                               [content]))))))
