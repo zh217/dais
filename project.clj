@@ -20,5 +20,5 @@
                  [aysylu/loom "1.0.0" :exclusions [tailrecursion/cljs-priority-map]]
                  [instaparse "1.4.7"]
                  [cpath-clj "0.1.2"]
-                 [com.walmartlabs/lacinia "0.17.0"]
+                 [com.walmartlabs/lacinia "0.18.0"]
                  [org.clojure/data.priority-map "0.0.7"]])
