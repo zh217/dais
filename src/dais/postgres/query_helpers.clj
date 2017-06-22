@@ -10,7 +10,8 @@
             [honeysql-postgres.format]                      ;; do not remove this, otherwise pg extensions will not work
             [taoensso.timbre :refer [debug report]]
             [io.aviso.ansi :refer [reset-font green red bold-blue bold-red blue bold-white cyan bold-cyan]]
-            [cheshire.core :as json])
+            [cheshire.core :as json]
+            [clojure.string :as str])
   (:import (org.joda.time DateTimeZone)
            (java.sql Array)
            (org.postgresql.util PGobject)))
@@ -203,3 +204,8 @@
                                   (name field)
                                   "' FROM "
                                   (hf/to-sql col)))))
+
+(defn ->sql-kw
+  [s]
+  (let [s (if (keyword? s) (name s) s)]
+    (keyword (str/lower-case s))))
