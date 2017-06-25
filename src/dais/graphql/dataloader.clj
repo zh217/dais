@@ -4,6 +4,7 @@
   (:require [clojure.core.async :as a]
             [clojure.set :as set]
             [taoensso.timbre :refer [info debug trace error]]
+            [com.walmartlabs.lacinia.executor :as executor]
             [dais.postgres.query-helpers :as h]))
 
 (defn make-dataloader
@@ -104,11 +105,16 @@
                    value-> (value-> value)
                    arg-> (arg-> args)
                    extract-fn (extract-fn ctx args value))]
-      (let [ret-chan (a/promise-chan)
-            payload {:batch-fn batch
-                     :ret-chan ret-chan
-                     :key      key}]
-        (trace "dataloader is called with payload" payload)
-        (a/put! dataloader payload)
-        ret-chan)
+      (let [selections (executor/selections-seq ctx)]
+        (trace "dataloader batch" key (vec selections))
+        (if (and (= 1 (count selections))
+                 (= "id" (name (first selections))))
+          {:id key}
+          (let [ret-chan (a/promise-chan)
+                payload {:batch-fn batch
+                         :ret-chan ret-chan
+                         :key      key}]
+            (trace "dataloader is called with payload" payload)
+            (a/put! dataloader payload)
+            ret-chan)))
       nil)))
