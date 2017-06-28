@@ -4,14 +4,14 @@
   (:refer-clojure :exclude [get])
   (:require [taoensso.timbre :refer [error]]
             [qbits.spandex :as s]
-            [qbits.spandex.utils :as s-utils])
+            [qbits.spandex.url :as url])
   (:import (java.util UUID)))
 
 (defn request
   [client method path body]
   (try
     (s/request client
-               {:url    (s-utils/url path)
+               {:url    (url/encode path)
                 :method method
                 :body   body})
     (catch Exception ex
