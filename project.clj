@@ -13,7 +13,7 @@
                  [com.taoensso/timbre "4.10.0"]
                  [clj-time "0.13.0"]
                  [cheshire "5.7.1"]
-                 [cc.qbits/spandex "0.5.0" :exclusions [org.clojure/clojure]]
+                 [cc.qbits/spandex "0.5.1" :exclusions [org.clojure/clojure]]
                  [org.clojure/java.jdbc "0.6.2-alpha3"]
                  [org.clojure/tools.reader "1.0.0"]
                  [me.raynes/conch "0.8.0"]
