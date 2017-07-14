@@ -134,7 +134,7 @@
                        (apply concat)
                        (apply call :jsonb_build_object)
                        (call :jsonb_agg))
-        (call :cast "{}" :jsonb)))
+        (call :cast "[]" :jsonb)))
 
 (defn json-object
   "Produce a JSON object. Takes as argument a clojure map."
