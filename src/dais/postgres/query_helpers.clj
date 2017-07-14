@@ -129,10 +129,12 @@
 (defn agg-json-object
   "Produce a JSON array of JSON objects. Takes as argument a clojure map."
   [kvs]
-  (call :jsonb_agg
-        (apply call :jsonb_build_object
-               (apply concat (for [[k v] kvs]
-                               [(if (keyword? k) (name k) k) v])))))
+  (call :coalesce (->> (for [[k v] kvs]
+                         [(if (keyword? k) (name k) k) v])
+                       (apply concat)
+                       (apply call :jsonb_build_object)
+                       (call :jsonb_agg))
+        (call :cast "{}" :jsonb)))
 
 (defn json-object
   "Produce a JSON object. Takes as argument a clojure map."
