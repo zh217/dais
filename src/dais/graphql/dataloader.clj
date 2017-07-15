@@ -7,7 +7,7 @@
             [com.walmartlabs.lacinia.executor :as executor]
             [dais.postgres.query-helpers :as h]
             [com.walmartlabs.lacinia.resolve :as resolve])
-  (:import (com.walmartlabs.lacinia.resolve ResolverResult)))
+  (:import (com.walmartlabs.lacinia.resolve ResolverResult ResolverResultPromise)))
 
 (defn make-dataloader
   [conn {:keys [key-fn key-processor]
@@ -101,27 +101,32 @@
 
 (defn batch-loader
   [{:keys [batch value-> arg-> extract-fn]}]
-  (trace "making dataloader with" batch value-> arg->)
-  ^ResolverResult
+  (trace "Making dataloader with" batch value-> arg->)
+  ^ResolverResult ^:graphql/no-wrap
   (fn [{:keys [dataloader] :as ctx} args value]
-    (if-let [key (cond
-                   value-> (value-> value)
-                   arg-> (arg-> args)
-                   extract-fn (extract-fn ctx args value))]
-      (let [selections (executor/selections-seq ctx)]
-        (trace "dataloader batch" key (vec selections))
-        (if (and (= 1 (count selections))
-                 (= "id" (name (first selections))))
-          (resolve/resolve-as {:id key})
-          (let [resolve-promise (resolve/resolve-promise)
-                ret-chan (a/promise-chan)
-                payload {:batch-fn batch
-                         :ret-chan ret-chan
-                         :key      key}]
-            (trace "dataloader is called with payload" payload)
-            (a/put! dataloader payload)
-            (a/take! ret-chan
-                     (fn [value]
-                       (resolve/deliver! resolve-promise value nil)))
-            resolve-promise)))
-      nil)))
+    (try
+      (if-let [key (cond
+                     value-> (value-> value)
+                     arg-> (arg-> args)
+                     extract-fn (extract-fn ctx args value))]
+        (let [selections (executor/selections-seq ctx)]
+          (trace "Dataloader Batch" key (vec selections))
+          (if (and (= 1 (count selections))
+                   (= "id" (name (first selections))))
+            (resolve/resolve-as {:id key})
+            (let [resolve-promise (resolve/resolve-promise)
+                  ret-chan (a/promise-chan)
+                  payload {:batch-fn batch
+                           :ret-chan ret-chan
+                           :key      key}]
+              (trace "Dataloader is called with payload" payload)
+              (a/put! dataloader payload)
+              (a/take! ret-chan
+                       (fn [value]
+                         (trace "Dataloader resolve result" value)
+                         (resolve/deliver! resolve-promise value nil)))
+              resolve-promise)))
+        (resolve/resolve-as nil))
+      (catch Throwable ex
+        (error ex)
+        (resolve/resolve-as nil {:message (str ex)})))))

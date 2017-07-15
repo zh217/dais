@@ -41,12 +41,14 @@
         (case (first f)
           :type [:type (normalize-type (second f))]
           :resolve [:resolve (if-let [orig-fn (second f)]
-                               ^ResolverResult (fn [ctx args vals]
-                                                 (try
-                                                   (resolve/resolve-as (orig-fn ctx args vals) nil)
-                                                   (catch Throwable ex
-                                                     (error ex)
-                                                     (resolve/resolve-as nil {:message (str ex)}))))
+                               (if (:graphql/no-wrap (meta orig-fn))
+                                 orig-fn
+                                 ^ResolverResult (fn [ctx args vals]
+                                                   (try
+                                                     (resolve/resolve-as (orig-fn ctx args vals) nil)
+                                                     (catch Throwable ex
+                                                       (error ex)
+                                                       (resolve/resolve-as nil {:message (str ex)})))))
                                ^ResolverResult (fn [_ _ _]
                                                  (resolve/resolve-as nil {:message "unimplemented"})))]
           f)
