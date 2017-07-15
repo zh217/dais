@@ -40,20 +40,16 @@
       (if (sequential? f)
         (case (first f)
           :type [:type (normalize-type (second f))]
-          :resolve (if-let [orig-fn (second f)]
-                     ^ResolverResult (fn [ctx args vals]
-                                       (try
-                                         (resolve/resolve-as (orig-fn ctx args vals) nil)
-                                         (catch Throwable ex
-                                           (error ex)
-                                           (resolve/resolve-as nil {:reason (str ex)}))))
-                     ^ResolverResult (fn [_ _ _]
-                                       (resolve/resolve-as nil {:reason "unimplemented"})))
+          :resolve [:resolve (if-let [orig-fn (second f)]
+                               ^ResolverResult (fn [ctx args vals]
+                                                 (try
+                                                   (resolve/resolve-as (orig-fn ctx args vals) nil)
+                                                   (catch Throwable ex
+                                                     (error ex)
+                                                     (resolve/resolve-as nil {:reason (str ex)}))))
+                               ^ResolverResult (fn [_ _ _]
+                                                 (resolve/resolve-as nil {:reason "unimplemented"})))]
           f)
-        f)
-      (if (and (sequential? f)
-               (= (first f) :type))
-        [:type (normalize-type (second f))]
         f))
     schema))
 
