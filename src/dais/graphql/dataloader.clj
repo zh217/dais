@@ -112,7 +112,8 @@
         (let [selections (executor/selections-seq ctx)]
           (trace "Dataloader Batch" key (vec selections))
           (if (and (= 1 (count selections))
-                   (= "id" (name (first selections))))
+                   (= "id" (name (first selections)))
+                   (nil? value))
             (resolve/resolve-as {:id key})
             (let [resolve-promise (resolve/resolve-promise)
                   ret-chan (a/promise-chan)
