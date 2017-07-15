@@ -46,9 +46,9 @@
                                                    (resolve/resolve-as (orig-fn ctx args vals) nil)
                                                    (catch Throwable ex
                                                      (error ex)
-                                                     (resolve/resolve-as nil {:reason (str ex)}))))
+                                                     (resolve/resolve-as nil {:message (str ex)}))))
                                ^ResolverResult (fn [_ _ _]
-                                                 (resolve/resolve-as nil {:reason "unimplemented"})))]
+                                                 (resolve/resolve-as nil {:message "unimplemented"})))]
           f)
         f))
     schema))
@@ -59,7 +59,7 @@
 
 (defn core-async-decorator
   [object-name field-name f]
-  (throw (ex-info "this is now useless" {:reason "deprecated"}))
+  (throw (ex-info "this is now useless" {:message "deprecated"}))
   #_(fn [context args value]
       (let [result (f context args value)]
         (if-not (chan? result)
