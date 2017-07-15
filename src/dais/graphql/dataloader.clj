@@ -7,7 +7,7 @@
             [com.walmartlabs.lacinia.executor :as executor]
             [dais.postgres.query-helpers :as h]
             [com.walmartlabs.lacinia.resolve :as resolve])
-  (:import (com.walmartlabs.lacinia.resolve ResolverResult ResolverResultPromise)))
+  (:import (com.walmartlabs.lacinia.resolve ResolverResult)))
 
 (defn make-dataloader
   [conn {:keys [key-fn key-processor]
