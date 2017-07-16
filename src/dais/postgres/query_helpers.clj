@@ -27,16 +27,28 @@
           "&&" "||" "@>" "<@" "->" "->>" "#>" "#>>" "?" "?|" "?&" "#-")))
 
 (defn ex!
-  [db q-def & {:keys [params quoting parameterizer return-param-names]
+  [db q-def & {:keys [params quoting parameterizer return-param-names multi?]
                :or   {quoting :ansi parameterizer :jdbc}}]
   (debug "query-helper/ex!" q-def)
-  (let [sql-vec (sql/format q-def
-                            :quoting quoting
-                            :parameterizer parameterizer
-                            :params params
-                            :return-param-names return-param-names)]
+  (let [sql-vec (if multi?
+                  (let [stmts (map
+                                #(sql/format %
+                                             :quoting quoting
+                                             :parameterizer parameterizer
+                                             :params params
+                                             :return-param-names return-param-names)
+                                q-def)
+                        stmt (ffirst stmts)
+                        vecs (map second stmts)]
+                    (assert (apply = (map first stmts)))
+                    (apply vector stmt vecs))
+                  (sql/format q-def
+                              :quoting quoting
+                              :parameterizer parameterizer
+                              :params params
+                              :return-param-names return-param-names))]
     (debug (green "SQL >>>") (first sql-vec) (green ">>>") (rest sql-vec))
-    (jdbc/execute! db sql-vec)))
+    (jdbc/execute! db sql-vec {:multi? multi?})))
 
 (defn q
   [db q-def & {:keys [params quoting parameterizer return-param-names]
