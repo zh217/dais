@@ -3,8 +3,10 @@
   dais.graphql.schema
   (:require [clojure.walk :as walk]
             [clojure.core.async :as a]
+            [taoensso.timbre :refer [error]]
             [com.walmartlabs.lacinia.resolve :as resolve])
-  (:import (clojure.core.async.impl.protocols ReadPort)))
+  (:import (clojure.core.async.impl.protocols ReadPort)
+           (com.walmartlabs.lacinia.resolve ResolverResult)))
 
 (defn deep-merge
   [ms]
@@ -35,9 +37,21 @@
   [schema]
   (walk/postwalk
     (fn [f]
-      (if (and (sequential? f)
-               (= (first f) :type))
-        [:type (normalize-type (second f))]
+      (if (sequential? f)
+        (case (first f)
+          :type [:type (normalize-type (second f))]
+          :resolve [:resolve (if-let [orig-fn (second f)]
+                               (if (:graphql/no-wrap (meta orig-fn))
+                                 orig-fn
+                                 ^ResolverResult (fn [ctx args vals]
+                                                   (try
+                                                     (resolve/resolve-as (orig-fn ctx args vals) nil)
+                                                     (catch Throwable ex
+                                                       (error ex)
+                                                       (resolve/resolve-as nil {:message (str ex)})))))
+                               ^ResolverResult (fn [_ _ _]
+                                                 (resolve/resolve-as nil {:message "unimplemented"})))]
+          f)
         f))
     schema))
 
@@ -47,12 +61,13 @@
 
 (defn core-async-decorator
   [object-name field-name f]
-  (fn [context args value]
-    (let [result (f context args value)]
-      (if-not (chan? result)
-        result
-        (let [resolve-promise (resolve/resolve-promise)]
-          (a/take! result
-                   (fn [value]
-                     (resolve/deliver! resolve-promise value nil)))
-          resolve-promise)))))
+  (throw (ex-info "this is now useless" {:message "deprecated"}))
+  #_(fn [context args value]
+      (let [result (f context args value)]
+        (if-not (chan? result)
+          result
+          (let [resolve-promise (resolve/resolve-promise)]
+            (a/take! result
+                     (fn [value]
+                       (resolve/deliver! resolve-promise value nil)))
+            resolve-promise)))))
