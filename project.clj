@@ -14,7 +14,7 @@
                  [clj-time "0.14.0"]
                  [cheshire "5.7.1"]
                  [cc.qbits/spandex "0.5.1" :exclusions [org.clojure/clojure]]
-                 [org.clojure/java.jdbc "0.6.2-alpha3"]
+                 [org.clojure/java.jdbc "0.7.0"]
                  [org.clojure/tools.reader "1.0.2"]
                  [me.raynes/conch "0.8.0"]
                  [aysylu/loom "1.0.0" :exclusions [tailrecursion/cljs-priority-map]]
