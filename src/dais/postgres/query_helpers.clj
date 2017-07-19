@@ -29,7 +29,7 @@
 (defn ex!
   [db q-def & {:keys [params quoting parameterizer return-param-names multi?]
                :or   {quoting :ansi parameterizer :jdbc}}]
-  (debug "query-helper/ex!" q-def)
+  (debug "query-helper/ex!" (doall q-def))
   (let [sql-vec (if multi?
                   (let [stmts (map
                                 #(sql/format %
@@ -39,7 +39,7 @@
                                              :return-param-names return-param-names)
                                 q-def)
                         stmt (ffirst stmts)
-                        vecs (map second stmts)]
+                        vecs (map rest stmts)]
                     (assert (apply = (map first stmts)))
                     (apply vector stmt vecs))
                   (sql/format q-def
