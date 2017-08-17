@@ -12,7 +12,7 @@
                  [org.postgresql/postgresql "42.1.4"]
                  [com.taoensso/timbre "4.10.0"]
                  [clj-time "0.14.0"]
-                 [cheshire "5.7.1"]
+                 [cheshire "5.8.0"]
                  [cc.qbits/spandex "0.5.2" :exclusions [org.clojure/clojure]]
                  [org.clojure/java.jdbc "0.7.0"]
                  [org.clojure/tools.reader "1.0.5"]
