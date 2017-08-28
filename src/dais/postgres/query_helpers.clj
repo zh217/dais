@@ -119,6 +119,7 @@
 (def ^{:doc "imported from `honeysql-postgres.helpers`"} do-nothing honeysql-postgres.helpers/do-nothing)
 (def ^{:doc "imported from `honeysql-postgres.helpers`"} do-update-set! honeysql-postgres.helpers/do-update-set!)
 (def ^{:doc "imported from `honeysql.core`"} call honeysql.core/call)
+(def ^{:doc "imported from `honeysql.core`"} inline honeysql.core/inline)
 
 
 (defn with-cte

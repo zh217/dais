@@ -7,7 +7,7 @@
         :url  "https://github.com/zh217/dais"}
   :pedantic? :abort
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [honeysql "0.9.0"]
+                 [honeysql "0.9.1"]
                  [nilenso/honeysql-postgres "0.2.3"]
                  [org.postgresql/postgresql "42.1.4"]
                  [com.taoensso/timbre "4.10.0"]
