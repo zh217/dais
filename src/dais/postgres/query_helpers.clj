@@ -220,6 +220,9 @@
                                   "' FROM "
                                   (hf/to-sql col)))))
 
+(defmethod hf/fn-handler "any" [_ res]
+  (str "ANY " (hf/to-sql res)))
+
 (defn ->sql-kw
   [s]
   (let [s (if (keyword? s) (name s) s)]
