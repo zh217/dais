@@ -6,7 +6,8 @@
             [taoensso.timbre :refer [error]]
             [com.walmartlabs.lacinia.resolve :as resolve])
   (:import (clojure.core.async.impl.protocols ReadPort)
-           (com.walmartlabs.lacinia.resolve ResolverResult)))
+           (com.walmartlabs.lacinia.resolve ResolverResult)
+           (clojure.lang ExceptionInfo)))
 
 (defn deep-merge
   [ms]
@@ -46,6 +47,8 @@
                                  ^ResolverResult (fn [ctx args vals]
                                                    (try
                                                      (resolve/resolve-as (orig-fn ctx args vals) nil)
+                                                     (catch ExceptionInfo ex
+                                                       (resolve/resolve-as nil {:message (.getMessage ex)}))
                                                      (catch Throwable ex
                                                        (error ex)
                                                        (resolve/resolve-as nil {:message (str ex)})))))
@@ -57,6 +60,8 @@
                                ^ResolverResult (fn [ctx args vals]
                                                  (try
                                                    (resolve/resolve-as (orig-fn ctx args vals) nil)
+                                                   (catch ExceptionInfo ex
+                                                     (resolve/resolve-as nil {:message (.getMessage ex)}))
                                                    (catch Throwable ex
                                                      (error ex)
                                                      (resolve/resolve-as nil {:message (str ex)})))))

@@ -7,7 +7,8 @@
             [com.walmartlabs.lacinia.executor :as executor]
             [dais.postgres.query-helpers :as h]
             [com.walmartlabs.lacinia.resolve :as resolve])
-  (:import (com.walmartlabs.lacinia.resolve ResolverResult)))
+  (:import (com.walmartlabs.lacinia.resolve ResolverResult)
+           (clojure.lang ExceptionInfo)))
 
 (defn make-dataloader
   [conn {:keys [key-processor]
@@ -52,6 +53,10 @@
                               (when-not (= v ::not-found)
                                 (trace "dataloader putting new value" k v)
                                 (a/put! c v)))
+                            (a/close! c)))
+                        (catch ExceptionInfo ex
+                          (doseq [[k c] vs]
+                            (a/put! c {::error (.getMessage ex)})
                             (a/close! c)))
                         (catch Exception ex
                           (error ex)
@@ -128,6 +133,8 @@
                            (resolve/deliver! resolve-promise value nil))))
               resolve-promise)))
         (resolve/resolve-as nil))
+      (catch ExceptionInfo ex
+        (resolve/resolve-as nil {:message (.getMessage ex)}))
       (catch Throwable ex
         (error ex)
         (resolve/resolve-as nil {:message (str ex)})))))
