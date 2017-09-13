@@ -31,30 +31,33 @@
                 (trace "dataloader pending requests:" (count pending))
                 (doseq [[[batch-fn key-fn key-proc] vs] pending]
                   (h/with-conn [c conn]
-                    (let [ks (set (map first vs))
-                          result (try
-                                   (batch-fn {:db c} ks)
-                                   (catch Exception ex
-                                     (error ex)))
-                          result (into {}
-                                       (for [row result]
-                                         [((or key-proc key-processor) (key-fn row)) row]))
-                          missing (into {}
-                                        (for [k (set/difference ks (set (keys result)))]
-                                          [k ::not-found]))]
-                      (when (seq result)
-                        (trace "dataloader result" result)
-                        (swap! cache update [batch-fn key-fn key-proc] merge result))
-                      (when (seq missing)
-                        (trace "dataloader missing values" missing)
-                        (swap! cache update [batch-fn key-fn key-proc] merge missing))
-                      (trace "dataloader cache" @cache)
-                      (doseq [[k c] vs]
-                        (let [v (get-in @cache [[batch-fn key-fn key-proc] k])]
-                          (when-not (= v ::not-found)
-                            (trace "dataloader putting new value" k v)
-                            (a/put! c v)))
-                        (a/close! c)))))
+                    (let [ks (set (map first vs))]
+                      (try
+                        (let [result (batch-fn {:db c} ks)
+                              result (into {}
+                                           (for [row result]
+                                             [((or key-proc key-processor) (key-fn row)) row]))
+                              missing (into {}
+                                            (for [k (set/difference ks (set (keys result)))]
+                                              [k ::not-found]))]
+                          (when (seq result)
+                            (trace "dataloader result" result)
+                            (swap! cache update [batch-fn key-fn key-proc] merge result))
+                          (when (seq missing)
+                            (trace "dataloader missing values" missing)
+                            (swap! cache update [batch-fn key-fn key-proc] merge missing))
+                          (trace "dataloader cache" @cache)
+                          (doseq [[k c] vs]
+                            (let [v (get-in @cache [[batch-fn key-fn key-proc] k])]
+                              (when-not (= v ::not-found)
+                                (trace "dataloader putting new value" k v)
+                                (a/put! c v)))
+                            (a/close! c)))
+                        (catch Exception ex
+                          (error ex)
+                          (doseq [[k c] vs]
+                            (a/put! c {::error (str ex)})
+                            (a/close! c)))))))
                 (recur {} false))
 
               ;; second case: one sentinel
@@ -120,7 +123,9 @@
               (a/take! ret-chan
                        (fn [value]
                          (trace "Dataloader resolve result" value)
-                         (resolve/deliver! resolve-promise value nil)))
+                         (if (::error value)
+                           (resolve/deliver! resolve-promise nil {:message (::error value)})
+                           (resolve/deliver! resolve-promise value nil))))
               resolve-promise)))
         (resolve/resolve-as nil))
       (catch Throwable ex
