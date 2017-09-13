@@ -51,6 +51,17 @@
                                                        (resolve/resolve-as nil {:message (str ex)})))))
                                ^ResolverResult (fn [_ _ _]
                                                  (resolve/resolve-as nil {:message "unimplemented"})))]
+          :stream [:stream (if-let [orig-fn (second f)]
+                             (if (:graphql/no-wrap (meta orig-fn))
+                               orig-fn
+                               ^ResolverResult (fn [ctx args vals]
+                                                 (try
+                                                   (resolve/resolve-as (orig-fn ctx args vals) nil)
+                                                   (catch Throwable ex
+                                                     (error ex)
+                                                     (resolve/resolve-as nil {:message (str ex)})))))
+                             ^ResolverResult (fn [_ _ _]
+                                               (resolve/resolve-as nil {:message "unimplemented"})))]
           f)
         f))
     schema))

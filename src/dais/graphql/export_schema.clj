@@ -91,7 +91,7 @@
        "\n}"))
 
 (defn generate-plain-schema
-  [{:keys [scalars enums interfaces objects input-objects queries mutations]}]
+  [{:keys [scalars enums interfaces objects input-objects queries mutations subscriptions]}]
   (str
     section-break
     (str/join item-break (map generate-scalar scalars))
@@ -107,5 +107,7 @@
     (generate-object [:QueryRoot {:fields queries}])
     section-break
     (generate-object [:MutationRoot {:fields mutations}])
+    section-break
+    (generate-object [:SubscriptionRoot {:fields subscriptions}])
     section-break
     preamble))
