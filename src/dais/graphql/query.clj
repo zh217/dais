@@ -13,7 +13,7 @@
 (defn load-query
   [& file-names]
   (let [file-lines (mapcat #(->> %
-                                 ;(io/resource)
+                                 (io/resource)
                                  (slurp)
                                  (str/split-lines))
                            file-names)
