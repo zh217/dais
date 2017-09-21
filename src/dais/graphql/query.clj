@@ -42,7 +42,6 @@
                                 [k (extract-fragment-names t)]))
         all-deps (into {} (for [[k ds] dependencies]
                             [k (loop [a-ds (set ds)]
-                                 (println a-ds)
                                  (let [new-deps (mapcat dependencies a-ds)
                                        all-deps (set (concat a-ds new-deps))]
                                    (if (= all-deps a-ds)
