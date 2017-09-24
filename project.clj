@@ -1,4 +1,4 @@
-(defproject infihis/dais "0.1.4"
+(defproject infihis/dais "0.1.5"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -18,7 +18,7 @@
                  [org.clojure/tools.reader "1.1.0"]
                  [me.raynes/conch "0.8.0"]
                  [aysylu/loom "1.0.0" :exclusions [tailrecursion/cljs-priority-map]]
-                 [instaparse "1.4.7"]
+                 [instaparse "1.4.8"]
                  [cpath-clj "0.1.2"]
                  [com.walmartlabs/lacinia "0.21.0"]
                  [org.clojure/data.priority-map "0.0.7"]])
