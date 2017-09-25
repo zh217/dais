@@ -50,6 +50,7 @@
                                                      (catch ExceptionInfo ex
                                                        (resolve/resolve-as nil {:message (.getMessage ex)}))
                                                      (catch Throwable ex
+                                                       (error "unexpected error in resolver" orig-fn)
                                                        (error ex)
                                                        (resolve/resolve-as nil {:message (str ex)})))))
                                ^ResolverResult (fn [_ _ _]
@@ -63,6 +64,7 @@
                                                    (catch ExceptionInfo ex
                                                      (resolve/resolve-as nil {:message (.getMessage ex)}))
                                                    (catch Throwable ex
+                                                     (error "unexpected error in resolver" orig-fn)
                                                      (error ex)
                                                      (resolve/resolve-as nil {:message (str ex)})))))
                              ^ResolverResult (fn [_ _ _]
