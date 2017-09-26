@@ -1,4 +1,4 @@
-(defproject infihis/dais "0.1.7"
+(defproject infihis/dais "0.2.0"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"

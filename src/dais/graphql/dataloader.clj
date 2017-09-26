@@ -17,7 +17,11 @@
 
 (defn- worker-with-timeout
   [f ctx params]
-  (let [res (future (f ctx params))
+  (let [res (future
+              (if-let [db-pool (:db-pool ctx)]
+                (h/with-conn [c db-pool]
+                  (f (assoc ctx :db c) params))
+                (f ctx params)))
         ret (a/promise-chan)]
     (try
       (a/>!! ret (.get ^Future res worker-timeout TimeUnit/MILLISECONDS))
@@ -39,8 +43,8 @@
     ret))
 
 (defn make-dataloader
-  [conn {:keys [key-processor identification]
-         :or   {key-processor identity}}]
+  [ctx {:keys [key-processor identification]
+        :or   {key-processor identity}}]
   (let [dataloader-chan (a/chan 1024)
         cache (atom {})]
     (trace "init dataloader" dataloader-chan identification)
@@ -59,32 +63,31 @@
             (do
               (trace "dataloader pending requests:" (count pending))
               (doseq [[[batch-fn key-fn key-proc] vs] pending]
-                (h/with-conn [c conn]
-                  (let [ks (set (map first vs))]
-                    (let [result (a/<! (worker-with-timeout batch-fn {:db c} ks))]
-                      (if-let [error-data (::worker-exception result)]
+                (let [ks (set (map first vs))]
+                  (let [result (a/<! (worker-with-timeout batch-fn ctx ks))]
+                    (if-let [error-data (::worker-exception result)]
+                      (doseq [[k c] vs]
+                        (a/>! c {::error (str (::cause result) error-data)})
+                        (a/close! c))
+                      (let [result (into {}
+                                         (for [row result]
+                                           [((or key-proc key-processor) (key-fn row)) row]))
+                            missing (into {}
+                                          (for [k (set/difference ks (set (keys result)))]
+                                            [k ::not-found]))]
+                        (when (seq result)
+                          (trace "dataloader result" result)
+                          (swap! cache update [batch-fn key-fn key-proc] merge result))
+                        (when (seq missing)
+                          (trace "dataloader missing values" missing)
+                          (swap! cache update [batch-fn key-fn key-proc] merge missing))
+                        (trace "dataloader cache" @cache)
                         (doseq [[k c] vs]
-                          (a/>! c {::error (str (::cause result) error-data)})
-                          (a/close! c))
-                        (let [result (into {}
-                                           (for [row result]
-                                             [((or key-proc key-processor) (key-fn row)) row]))
-                              missing (into {}
-                                            (for [k (set/difference ks (set (keys result)))]
-                                              [k ::not-found]))]
-                          (when (seq result)
-                            (trace "dataloader result" result)
-                            (swap! cache update [batch-fn key-fn key-proc] merge result))
-                          (when (seq missing)
-                            (trace "dataloader missing values" missing)
-                            (swap! cache update [batch-fn key-fn key-proc] merge missing))
-                          (trace "dataloader cache" @cache)
-                          (doseq [[k c] vs]
-                            (let [v (get-in @cache [[batch-fn key-fn key-proc] k])]
-                              (when-not (= v ::not-found)
-                                (trace "dataloader putting new value" k v)
-                                (a/>! c v)))
-                            (a/close! c))))))))
+                          (let [v (get-in @cache [[batch-fn key-fn key-proc] k])]
+                            (when-not (= v ::not-found)
+                              (trace "dataloader putting new value" k v)
+                              (a/>! c v)))
+                          (a/close! c)))))))
               (recur {} false))
 
             ;; second case: one sentinel
