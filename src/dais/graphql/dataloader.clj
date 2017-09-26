@@ -8,9 +8,35 @@
             [dais.postgres.query-helpers :as h]
             [com.walmartlabs.lacinia.resolve :as resolve])
   (:import (com.walmartlabs.lacinia.resolve ResolverResult)
-           (clojure.lang ExceptionInfo)))
+           (clojure.lang ExceptionInfo)
+           (java.util.concurrent TimeUnit TimeoutException Future ExecutionException)))
 
 (defonce active-dataloaders (atom {}))
+
+(defonce worker-timeout 5000)
+
+(defn- worker-with-timeout
+  [f ctx params]
+  (let [res (future (f ctx params))
+        ret (a/promise-chan)]
+    (try
+      (a/>!! ret (.get ^Future res worker-timeout TimeUnit/MILLISECONDS))
+      (catch ExecutionException ex
+        (let [nx-ex (.getCause ex)]
+          (a/>!! ret {::worker-exception nx-ex
+                      ::cause            "worker has thrown an exception: "})))
+      (catch TimeoutException _
+        (error "dataloader worker timeout" f params ctx)
+        (a/>!! ret {::worker-exception params
+                    ::cause            "worker has reached a timeout: "}))
+      (catch Throwable ex
+        (error "dataloader worker unknown exception" f params ctx)
+        (a/>!! ret {::worker-exception ex
+                    ::cause            "worker has unexpected behaviour: "}))
+      (finally
+        (a/close! ret)
+        (future-cancel res)))
+    ret))
 
 (defn make-dataloader
   [conn {:keys [key-processor identification]
@@ -22,9 +48,9 @@
     (a/go-loop [pending {}
                 sentinel? false]
       ;(trace "dataloader loop starting with" pending sentinel? dataloader-chan)
-      (if-let [data (a/<! dataloader-chan)]
-        (do
-          (trace "dataloader-loop" data)
+      (let [data (a/<! dataloader-chan)]
+        (trace "dataloader loop" data)
+        (if data
           (cond
             ;; first case: force sentinel or two sentinels in a row
             ;; flush everything
@@ -35,36 +61,30 @@
               (doseq [[[batch-fn key-fn key-proc] vs] pending]
                 (h/with-conn [c conn]
                   (let [ks (set (map first vs))]
-                    (try
-                      (let [result (batch-fn {:db c} ks)
-                            result (into {}
-                                         (for [row result]
-                                           [((or key-proc key-processor) (key-fn row)) row]))
-                            missing (into {}
-                                          (for [k (set/difference ks (set (keys result)))]
-                                            [k ::not-found]))]
-                        (when (seq result)
-                          (trace "dataloader result" result)
-                          (swap! cache update [batch-fn key-fn key-proc] merge result))
-                        (when (seq missing)
-                          (trace "dataloader missing values" missing)
-                          (swap! cache update [batch-fn key-fn key-proc] merge missing))
-                        (trace "dataloader cache" @cache)
+                    (let [result (a/<! (worker-with-timeout batch-fn {:db c} ks))]
+                      (if-let [error-data (::worker-exception result)]
                         (doseq [[k c] vs]
-                          (let [v (get-in @cache [[batch-fn key-fn key-proc] k])]
-                            (when-not (= v ::not-found)
-                              (trace "dataloader putting new value" k v)
-                              (a/>! c v)))
-                          (a/close! c)))
-                      (catch ExceptionInfo ex
-                        (doseq [[k c] vs]
-                          (a/>! c {::error (.getMessage ex)})
-                          (a/close! c)))
-                      (catch Exception ex
-                        (error ex)
-                        (doseq [[k c] vs]
-                          (a/>! c {::error (str ex)})
-                          (a/close! c)))))))
+                          (a/>! c {::error (str (::cause result) error-data)})
+                          (a/close! c))
+                        (let [result (into {}
+                                           (for [row result]
+                                             [((or key-proc key-processor) (key-fn row)) row]))
+                              missing (into {}
+                                            (for [k (set/difference ks (set (keys result)))]
+                                              [k ::not-found]))]
+                          (when (seq result)
+                            (trace "dataloader result" result)
+                            (swap! cache update [batch-fn key-fn key-proc] merge result))
+                          (when (seq missing)
+                            (trace "dataloader missing values" missing)
+                            (swap! cache update [batch-fn key-fn key-proc] merge missing))
+                          (trace "dataloader cache" @cache)
+                          (doseq [[k c] vs]
+                            (let [v (get-in @cache [[batch-fn key-fn key-proc] k])]
+                              (when-not (= v ::not-found)
+                                (trace "dataloader putting new value" k v)
+                                (a/>! c v)))
+                            (a/close! c))))))))
               (recur {} false))
 
             ;; second case: one sentinel
@@ -99,14 +119,16 @@
                   (trace "dataloader queuing complete")
                   (recur
                     (update pending [batch-fn key-fn key-proc] conj [((or key-proc key-processor) key) ret-chan])
-                    false))))))
-        ;; dataloader is closed
-        (do
-          (trace "dataloader cache at closing" @cache)
-          (doseq [[batch-fn vs] pending
-                  [k c] vs]
-            (a/close! c))
-          (swap! active-dataloaders dissoc dataloader-chan))))
+                    false)))))
+          ;; dataloader is closed
+          (do
+            (trace "dataloader cache at closing" @cache)
+            (doseq [[_ vs] pending
+                    [k c] vs]
+              (trace "dataloader cancelling" k)
+              (a/>! c {::cancelled k})
+              (a/close! c))
+            (swap! active-dataloaders dissoc dataloader-chan)))))
     dataloader-chan))
 
 (when-not *compile-files*
@@ -128,7 +150,7 @@
                      arg-> (arg-> args)
                      extract-fn (extract-fn ctx args value))]
         (let [selections (executor/selections-seq ctx)]
-          (trace "Dataloader Batch" key key-fn (vec selections))
+          (trace "dataloader Batch" key key-fn (vec selections))
           (if (and (keyword? key-fn)
                    (= 1 (count selections))
                    (= (name key-fn) (name (first selections)))
@@ -141,15 +163,16 @@
                            :key      key
                            :key-fn   key-fn
                            :key-proc key-proc}]
-              (trace "Dataloader is called with payload" payload dataloader)
+              (trace "dataloader is called with payload" payload dataloader)
               (a/>!! dataloader payload)
-              (trace "Dataloader put complete" payload dataloader)
+              (trace "dataloader put complete" payload dataloader)
               (a/take! ret-chan
                        (fn [value]
-                         (trace "Dataloader resolve result" value)
-                         (if (::error value)
-                           (resolve/deliver! resolve-promise nil {:message (::error value)})
-                           (resolve/deliver! resolve-promise value nil))))
+                         (trace "dataloader resolve result" value)
+                         (cond
+                           (::error value) (resolve/deliver! resolve-promise nil {:message (::error value)})
+                           (::cancelled value) (resolve/deliver! resolve-promise nil {:message (str "batchloader cancelled due to timeout" (::cancelled value))})
+                           :else (resolve/deliver! resolve-promise value nil))))
               resolve-promise)))
         (resolve/resolve-as nil))
       (catch ExceptionInfo ex
