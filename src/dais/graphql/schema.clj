@@ -41,7 +41,7 @@
       (if (sequential? f)
         (case (first f)
           :type [:type (normalize-type (second f))]
-          :resolve [:resolve (if-let [orig-fn (second f)]
+          :resolve [:resolve (let [orig-fn (second f)]
                                (if (:graphql/no-wrap (meta orig-fn))
                                  orig-fn
                                  ^ResolverResult (fn [ctx args vals]
@@ -52,23 +52,7 @@
                                                      (catch Throwable ex
                                                        (error "unexpected error in resolver" orig-fn)
                                                        (error ex)
-                                                       (resolve/resolve-as nil {:message (str ex)})))))
-                               ^ResolverResult (fn [_ _ _]
-                                                 (resolve/resolve-as nil {:message "unimplemented"})))]
-          :stream [:stream (if-let [orig-fn (second f)]
-                             (if (:graphql/no-wrap (meta orig-fn))
-                               orig-fn
-                               ^ResolverResult (fn [ctx args vals]
-                                                 (try
-                                                   (resolve/resolve-as (orig-fn ctx args vals) nil)
-                                                   (catch ExceptionInfo ex
-                                                     (resolve/resolve-as nil {:message (.getMessage ex)}))
-                                                   (catch Throwable ex
-                                                     (error "unexpected error in resolver" orig-fn)
-                                                     (error ex)
-                                                     (resolve/resolve-as nil {:message (str ex)})))))
-                             ^ResolverResult (fn [_ _ _]
-                                               (resolve/resolve-as nil {:message "unimplemented"})))]
+                                                       (resolve/resolve-as nil {:message (str ex)}))))))]
           f)
         f))
     schema))

@@ -138,8 +138,8 @@
   (a/go-loop [c 1]
     (a/<! (a/timeout 5000))
     (if (= 0 (rem c 12))
-      (info "active dataloaders:" (count @active-dataloaders) @active-dataloaders)
-      (debug "active dataloaders:" (count @active-dataloaders) @active-dataloaders))
+      (debug "active dataloaders:" (count @active-dataloaders) @active-dataloaders)
+      (trace "active dataloaders:" (count @active-dataloaders) @active-dataloaders))
     (recur (inc c))))
 
 (defn batch-loader
