@@ -4,7 +4,8 @@
   (:require [clojure.walk :as walk]
             [clojure.core.async :as a]
             [taoensso.timbre :refer [error]]
-            [com.walmartlabs.lacinia.resolve :as resolve])
+            [com.walmartlabs.lacinia.resolve :as resolve]
+            [dais.postgres.query-helpers :as h])
   (:import (clojure.core.async.impl.protocols ReadPort)
            (com.walmartlabs.lacinia.resolve ResolverResult)
            (clojure.lang ExceptionInfo)))
@@ -46,7 +47,11 @@
                                  orig-fn
                                  ^ResolverResult (fn [ctx args vals]
                                                    (try
-                                                     (resolve/resolve-as (orig-fn ctx args vals) nil)
+                                                     (let [result (if-let [db-conn (and (not (:graphql/no-db ctx)) (:db-conn ctx))]
+                                                                    (h/with-conn [c db-conn]
+                                                                      (orig-fn (assoc ctx :db c) args vals))
+                                                                    (orig-fn ctx args vals))]
+                                                       (resolve/resolve-as result nil))
                                                      (catch ExceptionInfo ex
                                                        (resolve/resolve-as nil {:message (.getMessage ex)}))
                                                      (catch Throwable ex
