@@ -1,6 +1,5 @@
-(ns
-  ^{:author "Ziyang Hu"}
-  dais.graphql.schema
+(ns dais.graphql.schema
+  {:author "Ziyang Hu"}
   (:require [clojure.walk :as walk]
             [clojure.core.async :as a]
             [taoensso.timbre :refer [error]]

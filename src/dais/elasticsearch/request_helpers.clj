@@ -1,6 +1,5 @@
-(ns
-  ^{:author "Ziyang Hu"}
-  dais.elasticsearch.request-helpers
+(ns dais.elasticsearch.request-helpers
+  {:author "Ziyang Hu"}
   (:refer-clojure :exclude [get])
   (:require [taoensso.timbre :refer [error]]
             [qbits.spandex :as s]

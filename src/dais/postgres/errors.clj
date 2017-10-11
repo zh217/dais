@@ -1,6 +1,5 @@
-(ns
-  ^{:author "Ziyang Hu"}
-  dais.postgres.errors
+(ns dais.postgres.errors
+  {:author "Ziyang Hu"}
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io])
   (:import (java.sql SQLException)))

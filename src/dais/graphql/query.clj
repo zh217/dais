@@ -1,6 +1,5 @@
-(ns
-  ^{:author "Ziyang Hu"}
-  dais.graphql.query
+(ns dais.graphql.query
+  {:author "Ziyang Hu"}
   (:require [clojure.string :as str]
             [clojure.java.io :as io]))
 

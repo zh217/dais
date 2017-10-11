@@ -1,6 +1,5 @@
-(ns
-  ^{:author "Ziyang Hu"}
-  dais.postgres.streaming
+(ns dais.postgres.streaming
+  {:author "Ziyang Hu"}
   (:require [clojure.core.async :as a :refer [<! >! <!! >!!]]
             [clojure.java.io :as io]
             [clojure.string :as str]

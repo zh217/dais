@@ -1,6 +1,5 @@
-(ns
-  ^{:author "Ziyang Hu"}
-  dais.graphql.dataloader
+(ns dais.graphql.dataloader
+  {:author "Ziyang Hu"}
   (:require [clojure.core.async :as a]
             [clojure.set :as set]
             [taoensso.timbre :refer [info debug trace error]]

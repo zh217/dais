@@ -1,6 +1,5 @@
-(ns
-  ^{:author "Ziyang Hu"}
-  dais.postgres.query-helpers
+(ns dais.postgres.query-helpers
+  {:author "Ziyang Hu"}
   (:refer-clojure :exclude [set update group-by array int-array cast])
   (:require [clojure.java.jdbc :as jdbc]
             [honeysql.core :as sql]

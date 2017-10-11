@@ -1,6 +1,5 @@
-(ns
-  ^{:author "Ziyang Hu"}
-  dais.graphql.export-schema
+(ns dais.graphql.export-schema
+  {:author "Ziyang Hu"}
   (:require [clojure.string :as str]
             [clj-time.core]))
 

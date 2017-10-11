@@ -1,6 +1,5 @@
-(ns
-  ^{:author "Ziyang Hu"}
-  dais.elasticsearch.indexer
+(ns dais.elasticsearch.indexer
+  {:author "Ziyang Hu"}
   (:require [clojure.core.async :as a]
             [taoensso.timbre :refer [info debug error trace]]
             [qbits.spandex :as s]

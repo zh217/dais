@@ -1,6 +1,5 @@
-(ns
-  ^{:author "Ziyang Hu"}
-  dais.postgres.migration
+(ns dais.postgres.migration
+  {:author "Ziyang Hu"}
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.java.jdbc :as jdbc]
