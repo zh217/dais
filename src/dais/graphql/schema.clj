@@ -7,7 +7,8 @@
             [dais.postgres.query-helpers :as h])
   (:import (clojure.core.async.impl.protocols ReadPort)
            (com.walmartlabs.lacinia.resolve ResolverResult)
-           (clojure.lang ExceptionInfo)))
+           (clojure.lang ExceptionInfo)
+           (java.util.concurrent Future TimeUnit TimeoutException ExecutionException)))
 
 (defn deep-merge
   [ms]
@@ -34,6 +35,7 @@
         modifiers))
     t))
 
+
 (defn normalize-all-types
   [schema]
   (walk/postwalk
@@ -44,19 +46,27 @@
           :resolve [:resolve (let [orig-fn (second f)]
                                (if (:graphql/no-wrap (meta orig-fn))
                                  orig-fn
-                                 ^ResolverResult (fn [ctx args vals]
-                                                   (try
-                                                     (let [result (if-let [db-conn (and (not (:graphql/no-db ctx)) (:db-conn ctx))]
-                                                                    (h/with-conn [c db-conn]
-                                                                      (orig-fn (assoc ctx :db c) args vals))
-                                                                    (orig-fn ctx args vals))]
-                                                       (resolve/resolve-as result nil))
-                                                     (catch ExceptionInfo ex
-                                                       (resolve/resolve-as nil {:message (.getMessage ex)}))
-                                                     (catch Throwable ex
-                                                       (error "unexpected error in resolver" orig-fn)
-                                                       (error ex)
-                                                       (resolve/resolve-as nil {:message (str ex)}))))))]
+                                 (let [op-timeout (get (meta orig-fn) :graphql/op-timeout (* 10 1000))]
+                                   ^ResolverResult (fn [ctx args vals]
+                                                     (let [result (future
+                                                                    (if-let [db-conn (and (not (:graphql/no-db ctx)) (:db-conn ctx))]
+                                                                      (h/with-conn [c db-conn]
+                                                                        (orig-fn (assoc ctx :db c) args vals))
+                                                                      (orig-fn ctx args vals)))]
+                                                       (try
+                                                         (resolve/resolve-as (.get ^Future result op-timeout TimeUnit/MILLISECONDS) nil)
+                                                         (catch ExecutionException ex
+                                                           (let [nx-ex (.getCause ex)]
+                                                             (when-not (instance? ExceptionInfo nx-ex)
+                                                               (error nx-ex))
+                                                             (resolve/resolve-as nil {:message (.getMessage nx-ex)})))
+                                                         (catch TimeoutException _
+                                                           (error "graphql worker timeout" orig-fn args vals)
+                                                           (resolve/resolve-as nil {:message "Operation timeout out"}))
+                                                         (catch Throwable ex
+                                                           (error "unexpected error in resolver" orig-fn)
+                                                           (error ex)
+                                                           (resolve/resolve-as nil {:message (str ex)}))))))))]
           f)
         f))
     schema))
