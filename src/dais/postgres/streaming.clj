@@ -89,7 +89,6 @@
   (comp
     ;; The stream comes as items corresponding to transactions. We want items based on row.
     (mapcat (fn [{:keys [change] :as item}]
-              (info (green "raw stream") item)
               (let [top-level-data (dissoc item :change)]
                 (map #(merge top-level-data %) change))))
     (map (fn [{:keys [columnnames columnvalues columntypes schema table kind oldkeys]}]
