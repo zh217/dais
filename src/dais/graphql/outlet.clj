@@ -75,7 +75,9 @@
           (do
             (debug "obtained subscription data" value)
             (-> (executor/execute-query
-                  (assoc conn-context constants/parsed-query-key parsed-query))
+                  (assoc conn-context
+                    constants/parsed-query-key parsed-query
+                    ::executor/resolved-value value))
                 (resolve/on-deliver! (fn [response]
                                        (try
                                          (a/put! send-ch
