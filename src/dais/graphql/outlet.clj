@@ -75,9 +75,10 @@
           (do
             (debug "obtained subscription data" value)
             (-> (executor/execute-query
-                  (assoc conn-context
-                    constants/parsed-query-key parsed-query
-                    ::executor/resolved-value value))
+                  (-> conn-context
+                      (assoc constants/parsed-query-key parsed-query
+                             ::executor/resolved-value value)
+                      (dissoc ::context-cleanup)))
                 (resolve/on-deliver! (fn [response]
                                        (try
                                          (a/put! send-ch
@@ -92,7 +93,9 @@
           (do
             (info (red (str "gql-sub-stop: " operationName)) msg-id variables conn-id)
             (a/close! collect-ch)
-            (clean-up-fn)))))
+            (clean-up-fn)
+            (when-let [ctx-cleanup (::context-cleanup conn-context)]
+              (ctx-cleanup))))))
     stop-ch))
 
 (defn- display-error
@@ -126,7 +129,9 @@
       (info (cyan (str "ws-gql: " operationName)) msg-id variables conn-id
             (str (cond-> time
                          (> time 50) (red))
-                 "ms")))))
+                 "ms")))
+    (when-let [ctx-cleanup (::context-cleanup conn-context)]
+      (ctx-cleanup))))
 
 (defn execute-query
   [model {:keys [operationName query variables] :as params} conn-context conn-id]
