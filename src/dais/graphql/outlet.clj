@@ -66,8 +66,7 @@
   (let [collect-ch (a/chan 1)
         clean-up-fn (invoke-streamer
                       (assoc conn-context constants/parsed-query-key parsed-query)
-                      (-> conn-context
-                          ::constants/parsed-query
+                      (-> parsed-query
                           :selections
                           first
                           :arguments)
