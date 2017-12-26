@@ -66,7 +66,11 @@
   (let [collect-ch (a/chan 1)
         clean-up-fn (invoke-streamer
                       (assoc conn-context constants/parsed-query-key parsed-query)
-                      variables
+                      (-> conn-context
+                          ::constants/parsed-query
+                          :selections
+                          first
+                          :arguments)
                       collect-ch)
         stop-ch (a/promise-chan)]
     (a/go-loop []
