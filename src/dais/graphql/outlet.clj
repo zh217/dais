@@ -175,7 +175,9 @@
                                    (debug "socket process start" (identifier ws) msg-id payload socket-data)
                                    (let [[parsed-query error-result] (try
                                                                        (debug query operationName)
-                                                                       [(parser/parse-query graphql-model query operationName)]
+                                                                       [(->
+                                                                         (parser/parse-query graphql-model query operationName)
+                                                                         (parser/prepare-with-query-variables variables))]
                                                                        (catch ExceptionInfo e
                                                                          (error e)
                                                                          [nil (as-errors e)]))]
